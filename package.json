@@ -20,8 +20,8 @@
   },
   "license": "MIT",
   "dependencies": {
-    "puppeteer": "^1.1.0",
-    "videoshow": "^0.1.11"
+    "moment": "^2.21.0",
+    "puppeteer": "^1.1.0"
   },
   "devDependencies": {
     "prettier": "^1.10.2"
