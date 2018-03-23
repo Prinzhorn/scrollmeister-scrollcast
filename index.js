@@ -3,11 +3,16 @@ const process = require('process');
 
 const moment = require('moment');
 const puppeteer = require('puppeteer');
+const argv = require('yargs').demandOption(['url', 'pos']).argv;
 
-const url = 'http://localhost:8080/examples/';
+const FPS = 25;
+const PIXEL_PER_SECOND = 500;
 
-const duration = 0.3;
-const numberOfFrames = Math.ceil(duration * 60);
+const url = argv.url;
+const deltas = [].concat(argv.pos);
+const totalDistance = deltas.reduce((a, b) => Math.abs(a) + Math.abs(b));
+const totalDuration = totalDistance / PIXEL_PER_SECOND;
+const numberOfFrames = Math.ceil(totalDuration * FPS);
 
 (async () => {
   const browser = await puppeteer.launch({ headless: true });
@@ -22,16 +27,29 @@ const numberOfFrames = Math.ceil(duration * 60);
     height: 720
   });
 
-  await page.addScriptTag({ path: 'js/TweenLite.min.js' });
+  await page.addScriptTag({ path: 'js/TweenMax.min.js' });
   await page.addScriptTag({ path: 'js/ScrollToPlugin.min.js' });
   await page.addStyleTag({ path: 'css/scrollbar.css' });
 
-  page.evaluate(duration => {
-    window.scrollCastTween = TweenLite.to(document.documentElement, duration, {
-      scrollTop: 2000,
-      paused: true
-    });
-  }, duration);
+  page.evaluate(
+    (PIXEL_PER_SECOND, deltas) => {
+      let timeline = (window.scrollCastTween = new TimelineMax({ paused: true }));
+      let scrollTop = 0;
+
+      for (let i = 0; i < deltas.length; i++) {
+        let delta = deltas[i];
+
+        scrollTop = scrollTop + delta;
+
+        timeline.to(document.documentElement, Math.abs(delta) / PIXEL_PER_SECOND, {
+          scrollTop: scrollTop,
+          ease: Power2.easeInOut
+        });
+      }
+    },
+    PIXEL_PER_SECOND,
+    deltas
+  );
 
   for (let i = 0; i <= numberOfFrames; i++) {
     const progress = i / numberOfFrames;
@@ -54,9 +72,9 @@ const numberOfFrames = Math.ceil(duration * 60);
   await browser.close();
 
   const videoFileName = `Scrollmeister-scrollcast-${moment().format('YYYY-MM-DD HH-mm-ss')}.mp4`;
-  const wget = spawn('ffmpeg', [
+  const ffmpeg = spawn('ffmpeg', [
     '-r',
-    '60',
+    FPS,
     '-f',
     'image2',
     '-s',
@@ -72,10 +90,10 @@ const numberOfFrames = Math.ceil(duration * 60);
     videoFileName
   ]);
 
-  wget.stderr.pipe(process.stderr);
-  wget.stderr.pipe(process.stderr);
+  ffmpeg.stderr.pipe(process.stderr);
+  ffmpeg.stderr.pipe(process.stderr);
 
-  wget.on('close', code => {
+  ffmpeg.on('close', code => {
     if (code !== 0) {
       return console.error(`Error, ffmpeg exited with status ${code}`);
     }
