@@ -1,0 +1,29 @@
+{
+  "name": "scrollmeister-scrollcast",
+  "version": "1.0.0",
+  "description": "Make a screencast of scrolling through a webpage",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "screencast"
+  ],
+  "author": {
+    "name": "Alexander Prinzhorn",
+    "email": "alexander@prinzhorn.it",
+    "url": "https://www.prinzhorn.it"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "printWidth": 120
+  },
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer": "^1.1.0",
+    "videoshow": "^0.1.11"
+  },
+  "devDependencies": {
+    "prettier": "^1.10.2"
+  }
+}
