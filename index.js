@@ -1,10 +1,21 @@
 const spawn = require('child_process').spawn;
 const process = require('process');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const util = require('util');
 
+const uuidv4 = require('uuid/v4');
 const moment = require('moment');
 const puppeteer = require('puppeteer');
-const argv = require('yargs').demandOption(['url', 'move']).argv;
+const argv = require('yargs')
+  .demandOption(['url', 'move', 'keep-frames'])
+  .default('keep-frames', false).argv;
 
+const rimraf = util.promisify(require('rimraf'));
+const mkdir = util.promisify(fs.mkdir);
+
+const TMP_DIR = os.tmpdir();
 const FPS = 25;
 const PIXEL_PER_SECOND = 500;
 
@@ -14,7 +25,11 @@ const totalDistance = deltas.reduce((a, b) => Math.abs(a) + Math.abs(b));
 const totalDuration = totalDistance / PIXEL_PER_SECOND;
 const numberOfFrames = Math.ceil(totalDuration * FPS);
 
+const tmpDir = path.join(TMP_DIR, uuidv4());
+
 (async () => {
+  await mkdir(tmpDir);
+
   const browser = await puppeteer.launch({ headless: false });
   const page = await browser.newPage();
 
@@ -57,7 +72,7 @@ const numberOfFrames = Math.ceil(totalDuration * FPS);
   for (let i = 0; i <= numberOfFrames; i++) {
     const progress = i / numberOfFrames;
 
-    console.log(`taking screenshot ${i} of ${numberOfFrames}`);
+    console.log(`Taking screenshot ${i} of ${numberOfFrames}`);
 
     await page.evaluate(progress => {
       return new Promise(resolve => {
@@ -69,7 +84,9 @@ const numberOfFrames = Math.ceil(totalDuration * FPS);
       });
     }, progress);
 
-    await page.screenshot({ path: `frames/${('000' + i).slice(-4)}.png` });
+    await page.screenshot({
+      path: path.join(tmpDir, `${('000' + i).slice(-4)}.png`)
+    });
   }
 
   await browser.close();
@@ -83,7 +100,7 @@ const numberOfFrames = Math.ceil(totalDuration * FPS);
     '-s',
     '1280x720',
     '-i',
-    'frames/%04d.png',
+    path.join(tmpDir, '%04d.png'),
     '-vcodec',
     'libx264',
     '-crf',
@@ -96,11 +113,19 @@ const numberOfFrames = Math.ceil(totalDuration * FPS);
   ffmpeg.stderr.pipe(process.stderr);
   ffmpeg.stderr.pipe(process.stderr);
 
-  ffmpeg.on('close', code => {
+  ffmpeg.on('close', async code => {
+    if (argv.keepFrames) {
+      console.log('The frames are still in', tmpDir);
+    } else {
+      console.log('Removing frames in', tmpDir);
+      console.log('Use --keep-frames to keep them around after the scrollcast is recorded');
+      await rimraf(tmpDir);
+    }
+
     if (code !== 0) {
       return console.error(`Error, ffmpeg exited with status ${code}`);
     }
 
-    console.log(`created ${videoFileName}`);
+    console.log(`Created ${videoFileName}`);
   });
 })();

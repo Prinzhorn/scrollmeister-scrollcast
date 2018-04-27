@@ -6,6 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "bin": {
+    "scrollcast": "index.js"
+  },
   "keywords": [
     "screencast"
   ],
@@ -22,6 +25,7 @@
   "dependencies": {
     "moment": "^2.21.0",
     "puppeteer": "^1.1.0",
+    "uuid": "^3.2.1",
     "yargs": "^11.0.0"
   },
   "devDependencies": {
