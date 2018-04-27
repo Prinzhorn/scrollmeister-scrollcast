@@ -3,24 +3,27 @@ const process = require('process');
 
 const moment = require('moment');
 const puppeteer = require('puppeteer');
-const argv = require('yargs').demandOption(['url', 'pos']).argv;
+const argv = require('yargs').demandOption(['url', 'move']).argv;
 
 const FPS = 25;
 const PIXEL_PER_SECOND = 500;
 
 const url = argv.url;
-const deltas = [].concat(argv.pos);
+const deltas = [].concat(argv.move);
 const totalDistance = deltas.reduce((a, b) => Math.abs(a) + Math.abs(b));
 const totalDuration = totalDistance / PIXEL_PER_SECOND;
 const numberOfFrames = Math.ceil(totalDuration * FPS);
 
 (async () => {
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await puppeteer.launch({ headless: false });
   const page = await browser.newPage();
 
   await page.goto(url, {
     waitUntil: 'load'
   });
+
+  //fadein behavior
+  await page.waitForFunction('window.getComputedStyle(document.querySelector("scroll-meister")).opacity === "1"');
 
   await page.setViewport({
     width: 1280,
@@ -71,7 +74,7 @@ const numberOfFrames = Math.ceil(totalDuration * FPS);
 
   await browser.close();
 
-  const videoFileName = `Scrollmeister-scrollcast-${moment().format('YYYY-MM-DD HH-mm-ss')}.mp4`;
+  const videoFileName = `Scrollmeister-Scrollcast-${moment().format('YYYY-MM-DD HH-mm-ss')}.mp4`;
   const ffmpeg = spawn('ffmpeg', [
     '-r',
     FPS,
